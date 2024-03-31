@@ -9,7 +9,6 @@ from keras.models import load_model
 import cv2
 import streamlit as st
 
-rf_model=pickle.load(open('new1_rf_model.pickle','rb'))
 soil_types = ['Mary', 'Loamy', 'Peaty', 'Sandy', 'Red soil', 'Chalky', 'Clay', 'Silt']
 
 def get_coordinates(district_name):
