@@ -9,6 +9,7 @@ from keras.models import load_model
 import cv2
 import streamlit as st
 
+rf_model=pickle.load(open('new1_rf_model.pickle','rb'))
 soil_types = ['Mary', 'Loamy', 'Peaty', 'Sandy', 'Red soil', 'Chalky', 'Clay', 'Silt']
 
 def get_coordinates(district_name):
@@ -89,17 +90,17 @@ def get_crop_season():
 # Load the saved model
 loaded_fine_tuned_model = load_model('loaded_model.h5')
 
-def preprocess_single_image(img, dimension=(128, 128)):
-    #img = cv2.imread(image_path, cv2.IMREAD_COLOR)
+def preprocess_single_image(image_path, dimension=(128, 128)):
+    img = cv2.imread(image_path, cv2.IMREAD_COLOR)
 
     if img is None:
-        #print(f"Failed to read image: {image_path}")
+        print(f"Failed to read image: {image_path}")
         return None# Return None for flattened data and target
 
     img_resized = cv2.resize(img, dimension, interpolation=cv2.INTER_AREA)
 
     if img_resized.size == 0:
-        #print(f"Empty image: {image_path}")
+        print(f"Empty image: {image_path}")
         return None # Return None for flattened data and target
 
     # Flatten and normalize the image
@@ -109,8 +110,8 @@ def preprocess_single_image(img, dimension=(128, 128)):
     return images
 
 
-def Soil_type_recognion(img):
-    preprocessed_data = preprocess_single_image(img)
+def Soil_type_recognion(image_path):
+    preprocessed_data = preprocess_single_image(image_path)
     if preprocessed_data is not None:
         preprocessed_data = np.expand_dims(preprocessed_data, axis=0)  
         predictions = loaded_fine_tuned_model.predict(preprocessed_data)
@@ -130,15 +131,15 @@ def get_best_crop():
     for crop in crops:
         if crop=='Jowar':
             predicted_yield = predict_yield1(area, temperature, precipitation, humidity,soil_type, district, crop, season)
-            st.write(f'\nJowar predicted yield: {predicted_yield*1000}')
+            st.write(f'\nJowar predicted yield: {predicted_yield*1000} tonnes')
         if crop=='Wheat':
             predicted_yield = predict_yield2(area, temperature, precipitation, humidity,soil_type, district, crop, season)
-            st.write(f'\nWheat predicted yield: {predicted_yield*1000}')
+            st.write(f'\nWheat predicted yield: {predicted_yield*1000} tonnes')
         if crop=='Bajra':
             predicted_yield = predict_yield3(area, temperature, precipitation, humidity,soil_type, district, crop, season)
-            st.write(f'\nBajra predicted yield: {predicted_yield*1000}')
+            st.write(f'\nBajra predicted yield: {predicted_yield*1000} tonnes')
         if predicted_yield > max_yield:
-            max_yield = predicted_yield
+            max_yield = predicted_yield*1000
             best_crop = crop
     
     return best_crop,max_yield
@@ -222,19 +223,16 @@ st.image("cover-crops2.png")
 nav = st.sidebar.radio("Navigation",['Automated Input','Manual Input'],help='choose the mode of input')
 
 if nav == 'Automated Input':
-    area = st.number_input("Enter the Area:",value=0)
+    area = st.number_input("Enter the Area (in hectares) :",value=0)
     district = st.text_input("Enter the District:",value= 'N/A')
     soil_type = 'null'
     st.markdown("### Upload Soil Image")
     soil = st.file_uploader("Upload an image of the soil", type=["jpg", "jpeg", "png"])
-    
     if soil is not None:
-    # Convert the file to an opencv image.
-        file_bytes = np.asarray(bytearray(soil.read()), dtype=np.uint8)
-        img = cv2.imdecode(file_bytes, 1)
-        soil_type = Soil_type_recognion(img)
-        #st.image(img, channels="BGR")
-    st.write("soil type is:  "+ soil_type)
+    # Use the file path
+        soil_type = Soil_type_recognion(soil.name)
+    #st.write("File Path:", file_path)
+    st.write("Soil Type is: " + soil_type)
     temperature = get_next_days_avg_temperature(district)
     precipitation = get_avg_precipitation(district)
     humidity = get_next_days_avg_humidity(district)
@@ -245,20 +243,20 @@ if nav == 'Automated Input':
     if st.button("Recommend Crop"):
         get_best_crop.clear()
         best_crop , max_yield = get_best_crop()
-        st.success(f'\nCrop with the highest predicted yield: {best_crop} ({max_yield*1000})')
+        st.success(f'\nCrop with the highest predicted yield: {best_crop} ({max_yield})')
 
 elif nav == 'Manual Input':
-    area = st.number_input("Enter the Area: ",value=0)
-    temperature = st.number_input("Enter the Temperature: ",value=0)
-    precipitation = st.number_input("Enter the Precipitation: ",value=0)
-    humidity = st.number_input("Enter the Humidity: ",value=0)
+    area = st.number_input("Enter the Area(in hectares): ",value=0)
+    temperature = st.number_input("Enter the Temperature(in C): ",value=0)
+    precipitation = st.number_input("Enter the Precipitation(in mm): ",value=0)
+    humidity = st.number_input("Enter the Humidity(in g/m3): ",value=0)
     soil_type = st.text_input("Enter the soil type: ",value='N/A')
     district = st.text_input("Enter the District: ",value='N/A')
-    season = st.text_input("Enter the Season: ",value='N/A')
+    season = st.text_input("Enter the Crop Season: ",value='N/A')
 
     if st.button("Recommend Crop"):
         get_best_crop.clear()
         best_crop , max_yield = get_best_crop()
-        st.success(f'\nCrop with the highest predicted yield: {best_crop} ({max_yield*1000})')
+        st.success(f'\nCrop with the highest predicted yield: {best_crop} ({max_yield})')
 
 
