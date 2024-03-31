@@ -258,6 +258,6 @@ elif nav == 'Manual Input':
     if st.button("Recommend Crop"):
         get_best_crop.clear()
         best_crop , max_yield = get_best_crop()
-        st.success(f'\nCrop with the highest predicted yield: {best_crop} ({max_yield})')
+        st.success(f'\nCrop with the highest predicted yield: {best_crop} ({max_yield*1000})tonnes')
 
 
